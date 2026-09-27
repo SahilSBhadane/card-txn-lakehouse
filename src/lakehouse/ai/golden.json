@@ -1,0 +1,87 @@
+[
+  {
+    "q": "Which merchant category had the highest total spend on the latest day?",
+    "tables": [
+      "daily_category_summary"
+    ],
+    "sql": "SELECT category FROM daily_category_summary WHERE ds = (SELECT max(ds) FROM daily_category_summary) GROUP BY category ORDER BY sum(total_inr) DESC LIMIT 1"
+  },
+  {
+    "q": "How many transactions were there in total across all days?",
+    "tables": [
+      "daily_category_summary"
+    ],
+    "sql": "SELECT sum(txn_count) FROM daily_category_summary"
+  },
+  {
+    "q": "What is the total spend in INR per channel across all days?",
+    "tables": [
+      "daily_category_summary"
+    ],
+    "sql": "SELECT channel, round(sum(total_inr), 2) FROM daily_category_summary GROUP BY channel"
+  },
+  {
+    "q": "How many fraud alerts fired for each rule?",
+    "tables": [
+      "fraud_alerts"
+    ],
+    "sql": "SELECT rule, count(*) FROM fraud_alerts GROUP BY rule"
+  },
+  {
+    "q": "How many distinct cards were flagged by the velocity rule?",
+    "tables": [
+      "fraud_alerts"
+    ],
+    "sql": "SELECT count(DISTINCT card_id) FROM fraud_alerts WHERE rule = 'velocity'"
+  },
+  {
+    "q": "What was the fraud alert rate on the latest day, as a percentage of transactions?",
+    "tables": [
+      "fraud_alerts",
+      "daily_category_summary"
+    ],
+    "sql": "SELECT round(100.0 * (SELECT count(*) FROM fraud_alerts WHERE ds = (SELECT max(ds) FROM fraud_alerts)) / (SELECT sum(txn_count) FROM daily_category_summary WHERE ds = (SELECT max(ds) FROM fraud_alerts)), 2)"
+  },
+  {
+    "q": "Who are the top 5 customers by total spend across all days?",
+    "tables": [
+      "customer_daily_spend"
+    ],
+    "sql": "SELECT customer_id FROM customer_daily_spend GROUP BY customer_id ORDER BY sum(spend_inr) DESC LIMIT 5"
+  },
+  {
+    "q": "What is the total spend by customer segment on the latest day?",
+    "tables": [
+      "customer_daily_spend"
+    ],
+    "sql": "SELECT segment, round(sum(spend_inr), 2) FROM customer_daily_spend WHERE ds = (SELECT max(ds) FROM customer_daily_spend) GROUP BY segment"
+  },
+  {
+    "q": "How many customers are currently in each city?",
+    "tables": [
+      "dim_customer"
+    ],
+    "sql": "SELECT city, count(*) FROM dim_customer WHERE is_current GROUP BY city"
+  },
+  {
+    "q": "How many customers have changed city or segment at least once?",
+    "tables": [
+      "dim_customer"
+    ],
+    "sql": "SELECT count(*) FROM (SELECT customer_id FROM dim_customer GROUP BY customer_id HAVING count(*) > 1)"
+  },
+  {
+    "q": "What is the average ticket size in INR across all days?",
+    "tables": [
+      "daily_category_summary"
+    ],
+    "sql": "SELECT round(sum(total_inr) / sum(txn_count), 2) FROM daily_category_summary"
+  },
+  {
+    "q": "Which high risk tier customers spent the most on the latest day?",
+    "tables": [
+      "customer_daily_spend"
+    ],
+    "sql": "SELECT customer_id FROM customer_daily_spend WHERE risk_tier = 'high' AND ds = (SELECT max(ds) FROM customer_daily_spend) ORDER BY spend_inr DESC LIMIT 5"
+  }
+]

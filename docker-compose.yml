@@ -1,0 +1,39 @@
+# airflow : `airflow standalone` (api-server + scheduler + dag-processor + triggerer) - http://localhost:8080
+# ollama  : free local LLM server - pull a model once:  docker compose exec ollama ollama pull qwen2.5-coder:7b
+# api     : "Ask your lakehouse" FastAPI service      - http://localhost:8000/docs
+# Laptop demo setup; production would split Airflow components and use Postgres + Celery/Kubernetes executors.
+services:
+  airflow:
+    build: .
+    image: card-txn-lakehouse
+    command: airflow standalone
+    ports: ["8080:8080"]
+    environment: &env
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/project/dags
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "True"   # local dev only: no login screen
+      LAKEHOUSE_HOME: /opt/project
+      LAKEHOUSE_DATA: /opt/project/data
+      PYTHONPATH: /opt/project/src
+      TXNS_PER_DAY: "200000"
+      N_CUSTOMERS: "20000"
+      LLM_PROVIDER: ollama
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5-coder:7b
+    volumes: ["./:/opt/project"]
+
+  ollama:
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: ["ollama:/root/.ollama"]
+
+  api:
+    image: card-txn-lakehouse
+    depends_on: [airflow, ollama]
+    command: python -m uvicorn lakehouse.ai.api:app --host 0.0.0.0 --port 8000
+    ports: ["8000:8000"]
+    environment: *env
+    volumes: ["./:/opt/project"]
+
+volumes:
+  ollama:
